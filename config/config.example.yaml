@@ -1,0 +1,56 @@
+# Smart Local Log & Error Triage Engine Configuration
+
+ollama:
+  host: "http://127.0.0.1:11434"
+  model: "gemma2:2b"
+  timeout_seconds: 15.0
+  max_retries: 2
+  backoff_factor: 1.5
+  max_concurrent_requests: 1
+
+rules:
+  # Normalization rules for matching severity
+  critical_patterns:
+    - "(?i)\\b(fatal|critical|panic|segmentation fault|outofmemoryerror)\\b"
+  high_patterns:
+    - "(?i)\\b(error|unhandledexception|unhandled exception|connection refused)\\b"
+    - "(?i)traceback \\(most recent call last\\):"
+  medium_patterns:
+    - "(?i)\\b(warn|warning|timeout|timed out|retry attempt)\\b"
+  low_patterns:
+    - "(?i)\\b(notice|deprecated)\\b"
+  # False positive ignore patterns
+  ignore_patterns:
+    - "(?i)\\b0 errors found\\b"
+    - "(?i)\\berror_code: 0\\b"
+    - "(?i)\\bno errors reported\\b"
+
+aggregator:
+  sliding_window_seconds: 30.0
+  cooldown_seconds: 60.0
+  max_groups: 5000
+  max_queue_size: 1000
+  max_context_lines: 20
+  max_token_budget: 512
+  inactivity_timeout_seconds: 2.0
+  worker_count: 1
+  poll_interval_seconds: 0.25
+  max_line_length: 10000
+
+redaction:
+  enabled: true
+  mask: "[REDACTED]"
+  patterns:
+    - "(?i)bearer\\s+[a-zA-Z0-9_\\-\\.]+"
+    - "(?i)(password|passwd|secret|api_key|apikey|access_token|private_key)[\\s]*[:=][\\s]*['\"]?[^'\"\\s,;]+"
+    - "(?i)postgres(?:ql)?://[^:]+:[^@]+@"
+    - "(?i)mongodb(?:\\+srv)?://[^:]+:[^@]+@"
+    - "(?i)mysql://[^:]+:[^@]+@"
+    - "-----BEGIN [A-Z ]+ PRIVATE KEY-----"
+
+output:
+  format: "console"  # "console" or "jsonl"
+  file_path: null
+  sqlite_path: null
+
+log_level: "INFO"
